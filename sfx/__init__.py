@@ -274,6 +274,9 @@ class SFXNetwork(object):
         Add a new node of type <node_klass> to the network, with the optional name.  <node_Klass> is either one of the
         SFXNodeType derivatives in the pbsnodes or sfxnodes submodules.
         """
+        if hasattr(node_klass, 'group_id'):
+            return self.add_group(node_klass, name)
+
         new_node_id = self.cmd(addNode=node_klass.ID)
 
         result = SFXNode(self.shader, new_node_id)
@@ -281,6 +284,15 @@ class SFXNetwork(object):
             result.name = name
         self.nodes[result.index] = result
         return result
+
+    def add_group(self, node_klass, name=None):
+        new_node_id = self.cmd(addGroup=node_klass.group_id())
+        result = SFXNode(self.shader, new_node_id)
+        if name:
+            result.name = name
+        self.nodes[result.index] = result
+        return result
+
 
     def delete(self, node_or_id):
         """

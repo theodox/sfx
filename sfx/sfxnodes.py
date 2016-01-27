@@ -22,64 +22,6 @@ class Time(SFXNodeType):
     ID = 20086
 
 
-class CameraVector(SFXNodeType):
-    TYPE = "Camera Vector"
-    ID = 40012
-
-
-class LightVector(SFXNodeType):
-    TYPE = "Light Vector"
-    ID = 40040
-
-
-class ReflectionVector(SFXNodeType):
-    TYPE = "Reflection Vector"
-    ID = 40055
-
-
-class RefractionVector(SFXNodeType):
-    TYPE = "Refraction Vector"
-    ID = 40057
-
-
-class UVSet(SFXNodeType):
-    TYPE = "UV Set"
-    ID = 40076
-
-
-class VertexColor(SFXNodeType):
-    TYPE = "Vertex Color"
-    ID = 40078
-
-
-class VertexWorldBiNormal(SFXNodeType):
-    TYPE = "Vertex World BiNormal"
-    ID = 40082
-
-
-class VertexWorldPosition(SFXNodeType):
-    TYPE = "Vertex World Position"
-    ID = 40084
-
-
-class VertexWorldTangent(SFXNodeType):
-    TYPE = "Vertex World Tangent"
-    ID = 40085
-
-
-class AmbientGroundSky(SFXNodeType):
-    TYPE = "Ambient Ground Sky"
-    ID = 40001
-
-
-class DesaturateColor(SFXNodeType):
-    TYPE = "Desaturate Color"
-    ID = 40019
-
-
-class Fresnel(SFXNodeType):
-    TYPE = "Fresnel"
-    ID = 40024
 
 
 class Light(SFXNodeType):
@@ -182,105 +124,6 @@ class WorldIT(SFXNodeType):
     ID = 20064
 
 
-class Brick(SFXNodeType):
-    TYPE = "Brick"
-    ID = 40008
-
-
-class CellularNoise(SFXNodeType):
-    TYPE = "Cellular Noise"
-    ID = 40013
-
-
-class Checker2D(SFXNodeType):
-    TYPE = "Checker 2D"
-    ID = 40014
-
-
-class Noise(SFXNodeType):
-    TYPE = "Noise"
-    ID = 20054
-
-
-class SimplexNoise2D(SFXNodeType):
-    TYPE = "Simplex Noise 2D"
-    ID = 40063
-
-
-class SimplexNoise3D(SFXNodeType):
-    TYPE = "Simplex Noise 3D"
-    ID = 40064
-
-
-class VoronoiSmoothQuilez(SFXNodeType):
-    TYPE = "VoronoiSmoothQuilez"
-    ID = 40086
-
-
-class WavyLines(SFXNodeType):
-    TYPE = "WavyLines"
-    ID = 40088
-
-
-class CombineNormalMaps(SFXNodeType):
-    TYPE = "Combine Normal Maps"
-    ID = 40017
-
-
-class DerivedNormalZMap(SFXNodeType):
-    TYPE = "Derived Normal Z Map"
-    ID = 40018
-
-
-class FlipBook(SFXNodeType):
-    TYPE = "Flip Book"
-    ID = 40022
-
-
-class LatLongUVs(SFXNodeType):
-    TYPE = "LatLong UVs"
-    ID = 40035
-
-
-class MatCapUVs(SFXNodeType):
-    TYPE = "MatCapUVs"
-    ID = 40043
-
-
-class PNAENDisplacementMap(SFXNodeType):
-    TYPE = "PNAEN Displacement Map"
-    ID = 40051
-
-
-class ReflectionCubeMap(SFXNodeType):
-    TYPE = "Reflection Cube Map"
-    ID = 40054
-
-
-class RefractionCubeMap(SFXNodeType):
-    TYPE = "Refraction Cube Map"
-    ID = 40056
-
-
-class SphericalReflectionUVs(SFXNodeType):
-    TYPE = "Spherical Reflection UVs"
-    ID = 40066
-
-
-class TextureMap(SFXNodeType):
-    TYPE = "Texture Map"
-    ID = 40071
-
-
-class UVPanner(SFXNodeType):
-    TYPE = "UV Panner"
-    ID = 40074
-
-
-class UVRotator(SFXNodeType):
-    TYPE = "UV Rotator"
-    ID = 40075
-
 
 class Bool(SFXNodeType):
     TYPE = "Bool"
@@ -317,20 +160,218 @@ class VectorConstruct(SFXNodeType):
     ID = 20020
 
 
-class Bump(SFXNodeType):
-    TYPE = "Bump"
-    ID = 40009
-
-
-class CameraDistanceTessellation(SFXNodeType):
-    TYPE = "Camera Distance Tessellation"
-    ID = 40010
-
-
 class String(SFXNodeType):
     TYPE = "String"
     ID = 20105
 
+
+
+class Noise(SFXNodeType):
+    TYPE = "Noise"
+    ID = 20054
+
+
+'''
+Nodes below here are hand-tweaked, not generated. In the ShaderFX UI they look like individual nodes but they
+are instantiated with the addNode flag and with a string name.
+'''
+
+
+
+class SFXGroupNodeType (SFXNodeType):
+    GROUP = "groupname"
+
+    @classmethod
+    def group_id(cls):
+        return "-".join((cls.TYPE, "Hw Shader Nodes", cls.GROUP)) + ".grp"
+
+
+# ---- Patterns
+
+class PatternNodeGroup(SFXGroupNodeType):
+    GROUP = 'Patterns'
+
+
+class Brick(PatternNodeGroup):
+    TYPE = "Brick"
+    ID = 40008
+
+
+class CellularNoise(PatternNodeGroup):
+    TYPE = "Cellular Noise"
+    ID = 40013
+
+
+class Checker2D(PatternNodeGroup):
+    TYPE = "Checker 2D"
+    ID = 40014
+
+class SimplexNoise2D(PatternNodeGroup):
+    TYPE = "Simplex Noise 2D"
+    ID = 40063
+
+
+class SimplexNoise3D(PatternNodeGroup):
+    TYPE = "Simplex Noise 3D"
+    ID = 40064
+
+
+class VoronoiSmoothQuilez(PatternNodeGroup):
+    TYPE = "VoronoiSmoothQuilez"
+    ID = 40086
+
+
+class WavyLines(PatternNodeGroup):
+    TYPE = "WavyLines"
+    ID = 40088
+
+# --- Textures
+
+class SFXTextureGroup(SFXGroupNodeType):
+    GROUP = "Textures"
+
+
+class CombineNormalMaps(SFXTextureGroup):
+    TYPE = "Combine Normal Maps"
+    ID = 40017
+
+
+class DerivedNormalZMap(SFXTextureGroup):
+    TYPE = "Derived Normal Z Map"
+    ID = 40018
+
+
+class FlipBook(SFXTextureGroup):
+    TYPE = "Flip Book"
+    ID = 40022
+
+
+class LatLongUVs(SFXTextureGroup):
+    TYPE = "LatLong UVs"
+    ID = 40035
+
+
+class MatCapUVs(SFXTextureGroup):
+    TYPE = "MatCapUVs"
+    ID = 40043
+
+
+class PNAENDisplacementMap(SFXTextureGroup):
+    TYPE = "PNAEN Displacement Map"
+    ID = 40051
+
+
+class ReflectionCubeMap(SFXTextureGroup):
+    TYPE = "Reflection Cube Map"
+    ID = 40054
+
+
+class RefractionCubeMap(SFXTextureGroup):
+    TYPE = "Refraction Cube Map"
+    ID = 40056
+
+
+class SphericalReflectionUVs(SFXTextureGroup):
+    TYPE = "Spherical Reflection UVs"
+    ID = 40066
+
+
+class TextureMap(SFXTextureGroup):
+    TYPE = "Texture Map"
+    ID = 40071
+
+
+class UVPanner(SFXTextureGroup):
+    TYPE = "UV Panner"
+    ID = 40074
+
+
+class UVRotator(SFXTextureGroup):
+    TYPE = "UV Rotator"
+    ID = 40075
+
+# ----  Inputs Common
+
+class CommonInputGroup(SFXGroupNodeType):
+    GROUP = "Inputs Common"
+
+
+class CameraVector(CommonInputGroup):
+    TYPE = "Camera Vector"
+    ID = 40012
+
+
+class LightVector(CommonInputGroup):
+    TYPE = "Light Vector"
+    ID = 40040
+
+
+class ReflectionVector(CommonInputGroup):
+    TYPE = "Reflection Vector"
+    ID = 40055
+
+
+class RefractionVector(CommonInputGroup):
+    TYPE = "Refraction Vector"
+    ID = 40057
+
+
+class UVSet(CommonInputGroup):
+    TYPE = "UV Set"
+    ID = 40076
+
+
+class VertexColor(CommonInputGroup):
+    TYPE = "Vertex Color"
+    ID = 40078
+
+
+class VertexWorldBiNormal(CommonInputGroup):
+    TYPE = "Vertex World BiNormal"
+    ID = 40082
+
+
+class VertexWorldPosition(CommonInputGroup):
+    TYPE = "Vertex World Position"
+    ID = 40084
+
+
+class VertexWorldTangent(CommonInputGroup):
+    TYPE = "Vertex World Tangent"
+    ID = 40085
+
+
+#----  Lighting groups
+
+class LightingGroup(SFXGroupNodeType):
+    GROUP = "Lighting"
+
+
+class AmbientGroundSky(LightingGroup):
+    TYPE = "Ambient Ground Sky"
+    ID = 40001
+
+
+class DesaturateColor(LightingGroup):
+    TYPE = "Desaturate Color"
+    ID = 40019
+
+
+class Fresnel(LightingGroup):
+    TYPE = "Fresnel"
+    ID = 40024
+
+# --- Various
+
+class Bump(SFXGroupNodeType):
+    TYPE = "Bump"
+    ID = 40009
+    GROUP = "Various"
+
+class CameraDistanceTessellation(SFXGroupNodeType):
+    TYPE = "Camera Distance Tessellation"
+    ID = 40010
+    GROUP = "Various"
 
 # use this to regenerate the class names with SFXNodeType.generate_class_definitions
 _KNOWN_SFX_NAMES = """Comparison
