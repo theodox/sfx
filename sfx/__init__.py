@@ -63,9 +63,14 @@ class SFXPlugs(object):
     SFXPlugs objects populate the  'inputs' and 'outputs' fields of graph nodes.
     """
 
-    def __init__(self, plugs):
-        safe_plug_name = lambda p: p.lower().replace(" ", "_")
-        self.plugs = dict((safe_plug_name(plug), i) for i, plug in enumerate(plugs))
+    def __init__(self, node, plugs):
+        def _safe_plug_name(p):
+            result = p.lower().replace(" ", "_")
+            if result.startswith("_"):
+                result = result[1:]
+            return result
+
+        self.plugs = dict((_safe_plug_name(plug), (node, i)) for i, plug in enumerate(plugs))
 
     def __getattr__(self, item):
         return self.plugs[item]
@@ -143,8 +148,8 @@ class SFXNode(object):
         input_plugs = [self.cmd(gsn=(self.index, 0, i)) for i in range(input_count)]
         output_count = self.cmd(gsc=(self.index, 1))
         output_plugs = [self.cmd(gsn=(self.index, 1, i)) for i in range(output_count)]
-        self.inputs = SFXPlugs(input_plugs)
-        self.outputs = SFXPlugs(output_plugs)
+        self.inputs = SFXPlugs(self.index, input_plugs)
+        self.outputs = SFXPlugs(self.index, output_plugs)
 
     @property
     def nodetype(self):
@@ -194,6 +199,21 @@ class SFXNode(object):
         return "<sfxNode '{0}' ({1})>".format(self.name, self.nodetype)
 
 
+class SFXGroupNode(SFXNode):
+    """
+    Subclass that wraps nodes which are really groups (eg, 'Texture Map') and correctly handles the quirky way
+    that outputs are managed. Group nodes do not correctly report the output values they display: those are
+    delegated to a separate 'group end node' which is captured here.
+    """
+    __slots__ = ['cmd', 'index', 'node', '_cached_properties', 'nodetype', 'inputs', 'outputs', 'properties',
+                 'end_node']
+
+    def __init__(self, node, idx):
+        super(SFXGroupNode, self).__init__(node, idx)
+        self.end_node = SFXNode(node, self.cmd(getGroupEndUID=idx))
+        self.outputs = self.end_node.outputs
+
+
 class SFXNetwork(object):
     """
     Wraps a shaderFX node for queries
@@ -217,23 +237,22 @@ class SFXNetwork(object):
         # gets a node
 
         mult_node = network.add(pbsnodes.Multiply)
-        # creates a Multiply node and adds it to the network
+        # creates a Multiply node and adds it safto the network
 
         var_node_2 = network.add(pbsnodes.MaterialVariable)
         # creates a MaterialVariable node and adds it to the network
 
-        network.connect(var_node_1, 0, mult_node, 0)
-        # connect output 0 of the first material variable to the multipy
+        network.connect(var_node.outputs.value, mult_node.inputs.A)
+        # connect output 'value' of the first material variable to input A the multiply node
         mult_node.activesocket = 0
         mult_node.socketswizzlevalue = 'xyz'
         # set the swizzle to 'xyz' (ie, a float3)
-        network.connect(var_node_2, 0, mult_node, 1)
+        network.connect(var_node.outputs.result, mult_node.inputs.A)
         mult_node.activesocket = 1
         mult_node.socketswizzlevalue = 'xyz'
         # connect the second var to socket 1 of the multiply
-        network.connect(mult_node, 0, network.root, 1)
-        # connect the mult node to socket 1 of network root
-        # which will be the color
+        network.connect(mult_node.outputs.result, network.root.inputs.color)
+        # connect the mult node to the color socket of the root
 
 
         print network.find_by_type(pbsnodes.MaterialVariable)
@@ -259,7 +278,12 @@ class SFXNetwork(object):
             # so we try random IDs until we have our count
             # we'll rarely get past 20 or so...
             try:
-                result = SFXNode(self.shader, r)
+                result = None
+                if self.cmd(isGroupStart=r):
+                    result = SFXGroupNode(self.shader, r)
+                else:
+                    result = SFXNode(self.shader, r)
+
                 if result.name:
                     self.nodes[result.index] = result
                 found += 1
@@ -275,7 +299,7 @@ class SFXNetwork(object):
         SFXNodeType derivatives in the pbsnodes or sfxnodes submodules.
         """
         if hasattr(node_klass, 'group_id'):
-            return self.add_group(node_klass, name)
+            return self._add_group(node_klass, name)
 
         new_node_id = self.cmd(addNode=node_klass.ID)
 
@@ -285,14 +309,16 @@ class SFXNetwork(object):
         self.nodes[result.index] = result
         return result
 
-    def add_group(self, node_klass, name=None):
+    def _add_group(self, node_klass, name=None):
+        """
+        adds a group node of type node_klass.  Only called from add()
+        """
         new_node_id = self.cmd(addGroup=node_klass.group_id())
-        result = SFXNode(self.shader, new_node_id)
+        result = SFXGroupNode(self.shader, new_node_id)
         if name:
             result.name = name
         self.nodes[result.index] = result
         return result
-
 
     def delete(self, node_or_id):
         """
@@ -304,23 +330,48 @@ class SFXNetwork(object):
         del (self.nodes[node_or_id])
         self.cmd(deleteNode=node_or_id)
 
-    def connect(self, node, plug, node2, plug2, swizzle=None):
+    def connect(self, start_plug, end_plug, swizzle=None):
         """
-        connect <plug> of <node> to <plug2> of <node2>
+        connect two sockets, represented by SFXPlug tuples of (node, socket).  Ordinarily you'd call this like
+
+            net.connect( node.outputs.plugname, other_node.inputs.plugname)
+
+        but
+
+            net.connect( (123, 1), (456, 0))
+
+        will also work, connecting output 1 of node 123 to input 0 of node 456.
+
         If swizzle string is provided, set the receiving socket swizzle
 
+        Plug names are always lower cased. In shaderFx networks they are enjambed, so that "Specular Color" becomes
+        'specularcolor' and so on. In PBS networks spaces become underscores
+
         """
-        self.cmd(makeConnection=(node.index, plug, node2.index, plug2))
+        node, plug = start_plug
+        node2, plug2 = end_plug
+
+        self.cmd(makeConnection=(node, plug, node2, plug2))
         if swizzle:
             node2.activesocket = plug2
             node2.socketswizzlevalue = swizzle
 
-    def disconnect(self, node, plug, node2, plug2):
+    def disconnect(self, start_plug, end_plug):
         """
-        disconnect <plug> of <node> from <plug2> of <node2>
+        connect two sockets, represented by SFXPlug tuples of (node, socket).  Ordinarily you'd call this like
+
+            net.disconnect( node.outputs.plugname, other_node.inputs.plugname)
+
+        but
+
+            net.disconnect( (123, 1), (456, 0))
+
+        will also work
 
         """
-        self.cmd(breakConnection=(node.index, plug, node2.index, plug2))
+        node, plug = start_plug
+        node2, plug2 = end_plug
+        self.cmd(breakConnection=(node, plug, node2, plug2))
 
     def find_by_name(self, name):
         return [i for i in self.nodes.values() if i.name == name]
